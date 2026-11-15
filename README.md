@@ -1,5 +1,7 @@
 # HealtHosted
 
+<img width="1814" height="941" alt="изображение-pixelated" src="https://github.com/user-attachments/assets/12e352b2-507e-4e3c-8ab7-b0927dc0599e" />
+
 Self-hosted личный медицинский архив: медкнижка, история болезней, визиты врача,
 анализы с референсами, измерения, отчёт для врача и экспорт. Один Docker-контейнер,
 SQLite, без внешних сервисов и телеметрии.
