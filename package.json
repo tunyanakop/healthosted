@@ -1,0 +1,48 @@
+{
+  "name": "healthosted",
+  "version": "0.4.1",
+  "private": true,
+  "license": "MIT",
+  "description": "HealtHosted — self-hosted личный медицинский архив",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "next": "15.5.29",
+    "prisma": "6.19.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "3.4.19",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "author": "Akob Tunyan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tunyanakop/healthosted.git"
+  },
+  "homepage": "https://github.com/tunyanakop/healthosted#readme",
+  "bugs": {
+    "url": "https://github.com/tunyanakop/healthosted/issues"
+  }
+}

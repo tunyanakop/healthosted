@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    container_name: healthosted
+    restart: unless-stopped
+    # Адрес прослушивания. По умолчанию 127.0.0.1 — только сам сервер.
+    # Для доступа из локальной сети: BIND_ADDR=0.0.0.0 в .env (см. README).
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/data/app.db
+      DATA_DIR: /data
+      PORT: "3000"
+      # Источники данных о среде: auto | open-meteo | met.no | wttr.in
+      ENV_WEATHER_PROVIDER: ${ENV_WEATHER_PROVIDER:-auto}
+      ENV_AIR_PROVIDER: ${ENV_AIR_PROVIDER:-open-meteo}
+    volumes:
+      - healthosted_data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  healthosted_data:
+    name: healthosted_data

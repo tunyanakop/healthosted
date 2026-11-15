@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Типы, тесты, сборка
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # отдельная БД для проверки миграций и сборки
+      DATABASE_URL: file:./ci.db
+      DATA_DIR: ./.ci-data
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # --include=dev: npm ci пропускает devDependencies при NODE_ENV=production
+      - name: Установка зависимостей
+        run: npm ci --include=dev
+
+      - name: Prisma client
+        run: npx prisma generate
+
+      - name: Миграции на чистой SQLite
+        run: npx prisma migrate deploy
+
+      - name: Типы
+        run: npx tsc --noEmit
+
+      - name: Тесты
+        run: npm test
+
+      - name: Production-сборка
+        run: npm run build
+
+  docker:
+    name: Docker-образ
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Сборка образа
+        run: docker build -t healthosted:ci .
+
+      # миграции + старт через entrypoint, затем проверка health
+      - name: Запуск и healthcheck
+        run: |
+          docker run -d --name hh-ci -p 127.0.0.1:3010:3000 \
+            -e DATA_DIR=/data -e DATABASE_URL=file:/data/app.db \
+            healthosted:ci
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3010/api/health || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3010/api/health
+          docker logs hh-ci | tail -20
+
+      - name: Убрать контейнер
+        if: always()
+        run: docker rm -f hh-ci || true

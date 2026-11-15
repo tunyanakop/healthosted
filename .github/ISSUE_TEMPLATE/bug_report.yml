@@ -1,0 +1,60 @@
+name: Баг-репорт
+description: Что-то сломалось или выглядит неправильно
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за репорт. Не прикладывайте реальные медицинские данные, скриншоты
+        с личными показателями и содержимое `.env`.
+  - type: input
+    id: version
+    attributes:
+      label: Версия
+      description: Из `http://127.0.0.1:3000/api/health` (поле `version`)
+      placeholder: 0.4.1
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Способ установки
+      options:
+        - docker compose
+        - локально (npm run dev / npm start)
+        - другое
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Окружение
+      placeholder: Debian 12, Docker 27, браузер Firefox 128
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Открыть /labs
+        2. Нажать «Добавить анализ»
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидалось
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Получилось
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи
+      description: "`docker compose logs app --tail=50` или вывод консоли браузера"
+      render: text

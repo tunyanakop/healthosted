@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink-950 text-slate-100 antialiased;
+  background-image: radial-gradient(
+      circle at 15% -10%,
+      rgba(34, 211, 238, 0.06),
+      transparent 45%
+    ),
+    radial-gradient(circle at 90% 0%, rgba(14, 116, 144, 0.08), transparent 40%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-ink-700 bg-ink-900/60 p-5;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg border border-ink-700 px-3 py-2 text-sm font-medium transition-colors hover:border-accent/60 hover:text-accent;
+  }
+
+  .btn-primary {
+    @apply border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 hover:text-accent;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm outline-none focus:border-accent/70;
+  }
+
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400;
+  }
+
+  .muted {
+    @apply text-sm text-slate-400;
+  }
+}
+
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    background-image: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  * {
+    color: #111 !important;
+    text-shadow: none !important;
+  }
+
+  .card {
+    border: 1px solid #d4d4d8 !important;
+    background: #fff !important;
+    padding: 12px !important;
+  }
+
+  .print-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  table {
+    font-size: 11px !important;
+  }
+}

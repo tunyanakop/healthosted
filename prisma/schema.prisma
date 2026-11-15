@@ -1,0 +1,267 @@
+// HealtHosted — схема данных.
+// SQLite в MVP; схема держится переносимой на PostgreSQL (без enum и Json).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  birthDate    DateTime?
+  sex          String? // male | female | other
+  bloodType    String?
+  role         String   @default("owner") // owner | member
+  // среда и сезонный риск
+  latitude     Float?
+  longitude    Float?
+  locationName String?
+  envEnabled   Boolean  @default(false)
+  incidence    String? // low | medium | high — ручная оценка заболеваемости в городе
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     Session[]
+  conditions   Condition[]
+  visits       Visit[]
+  medbook      MedBookEntry[]
+  labPanels    LabPanel[]
+  measurements Measurement[]
+  attachments  Attachment[]
+  audit        AuditLog[]
+  allergies    Allergy[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Condition {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  icd10      String?
+  status     String    @default("active") // active | remission | resolved
+  onsetAt    DateTime?
+  resolvedAt DateTime?
+  notes      String?
+  // сезонная инфекция: если заполнено — запись участвует в модели риска
+  seasonalKind String? // flu | arvi | covid | other
+  severity     String? // mild | moderate | severe
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  visits Visit[]
+
+  @@index([userId, status])
+}
+
+model Visit {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitedAt       DateTime
+  doctorName      String?
+  specialty       String?
+  clinic          String?
+  reason          String?
+  diagnosis       String?
+  conclusion      String?
+  recommendations String?
+  conditionId     String?
+  condition       Condition? @relation(fields: [conditionId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  attachments Attachment[]
+
+  @@index([userId, visitedAt])
+  @@index([conditionId])
+}
+
+model MedBookEntry {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String // флюорография | медосмотр | санминимум | прививка | прочее
+  number     String?
+  issuer     String?
+  issuedAt   DateTime?
+  validUntil DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  attachments Attachment[]
+
+  @@index([userId, validUntil])
+}
+
+model LabPanel {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  takenAt   DateTime
+  kind      String? // id шаблона: cbc, biochem, custom…
+  specimen  String? // venous_blood | capillary_blood | serum | plasma | urine | any
+  pregnant  Boolean? // контекст на дату сдачи
+  trimester Int?
+  menopause Boolean?
+  cyclePhase String? // follicular | ovulation | luteal
+  labName   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  results     LabResult[]
+  attachments Attachment[]
+
+  @@index([userId, takenAt])
+}
+
+model LabResult {
+  id           String   @id @default(cuid())
+  panelId      String
+  panel        LabPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  testCode     String?
+  appliedNote  String?
+  name         String
+  value        String
+  numericValue Float?
+  unit         String?
+  refMin       Float?
+  refMax       Float?
+  flag         String   @default("unknown") // low | normal | high | unknown
+  createdAt    DateTime @default(now())
+
+  @@index([panelId])
+}
+
+model Measurement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       String // weight | height | bp | pulse | temp | spo2 | glucose
+  value      Float
+  value2     Float? // диастолическое для bp
+  unit       String?
+  measuredAt DateTime
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, kind, measuredAt])
+}
+
+model Attachment {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitId       String?
+  visit         Visit?    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  medBookId     String?
+  medBook       MedBookEntry? @relation(fields: [medBookId], references: [id], onDelete: Cascade)
+  labPanelId    String?
+  labPanel      LabPanel? @relation(fields: [labPanelId], references: [id], onDelete: Cascade)
+  filename      String
+  mime          String
+  size          Int
+  sha256        String
+  storedPath    String
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([visitId])
+  @@index([medBookId])
+  @@index([labPanelId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String // create | update | delete | login | logout | export
+  entityType String?
+  entityId   String?
+  ip         String?
+  at         DateTime @default(now())
+
+  @@index([userId, at])
+}
+
+model Allergy {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String // "берёза", "кошки", "пенициллин"
+  category  String // pollen | mold | dust | animal | food | medication | other
+  severity  String   @default("moderate") // mild | moderate | severe
+  months    String? // "3,4,5" — месяцы обострения (1–12)
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, active])
+}
+
+model EnvCache {
+  id        String   @id @default(cuid())
+  key       String   @unique // "40.18,44.51"
+  fetchedAt DateTime
+  payload   String // JSON снимка среды
+}
+
+model TestDefinition {
+  code        String  @id
+  name        String
+  defaultUnit String?
+  note        String?
+}
+
+model ReferenceRange {
+  id         String  @id @default(cuid())
+  testCode   String
+  specimen   String  @default("any") // any | venous_blood | capillary_blood | serum | plasma | urine
+  sex        String  @default("any") // any | male | female
+  ageMinDays Int     @default(0)
+  ageMaxDays Int     @default(36500)
+  state      String  @default("none") // none | pregnant_t1..t3 | menopause | follicular | ovulation | luteal
+  min        Float?
+  max        Float?
+  unit       String
+  panicLow   Float?
+  panicHigh  Float?
+  note       String?
+
+  @@index([testCode, sex, state])
+}
+
+model UnitConversion {
+  id       String @id @default(cuid())
+  testCode String
+  fromUnit String
+  toUnit   String
+  factor   Float
+  offset   Float  @default(0)
+
+  @@unique([testCode, fromUnit, toUnit])
+}
